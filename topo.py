@@ -132,6 +132,7 @@ def dfs_topological_sort(
     graph: Dict[str, List[str]],
     state: Dict[str, int],
     order_stack: List[str],
+    events: Optional[List[Dict[str, any]]] = None,
 ) -> bool:
     """
     DFS topological sort (Decrease & Conquer).
@@ -139,20 +140,29 @@ def dfs_topological_sort(
     Returns False if cycle detected during sort.
     """
     state[node] = VISITING
+    if events is not None:
+        events.append({"type": "visiting", "node": node})
+        
     for dep in graph.get(node, []):
+        if events is not None:
+            events.append({"type": "edge", "from": node, "to": dep})
+            
         if state.get(dep, UNVISITED) == UNVISITED:
-            if not dfs_topological_sort(dep, graph, state, order_stack):
+            if not dfs_topological_sort(dep, graph, state, order_stack, events):
                 return False
         elif state.get(dep) == VISITING:
             return False
 
     state[node] = VISITED
+    if events is not None:
+        events.append({"type": "visited", "node": node})
+        
     order_stack.append(node)
     return True
 
 
 def topological_sort_boot_order(
-    graph: Dict[str, List[str]], visit_order: Optional[List[str]] = None
+    graph: Dict[str, List[str]], visit_order: Optional[List[str]] = None, events: Optional[List[Dict[str, any]]] = None
 ) -> Optional[List[str]]:
     """
     Compute valid boot order via DFS topological sort.
@@ -164,7 +174,7 @@ def topological_sort_boot_order(
 
     for node in nodes:
         if node in graph and state.get(node, UNVISITED) == UNVISITED:
-            if not dfs_topological_sort(node, graph, state, order_stack):
+            if not dfs_topological_sort(node, graph, state, order_stack, events):
                 return None
 
     return order_stack

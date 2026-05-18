@@ -39,6 +39,8 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                     response = self.handle_boot(query)
                 elif path == '/api/scheduler':
                     response = self.handle_scheduler(query)
+                elif path == '/api/config':
+                    response = self.handle_get_config()
                 else:
                     response = {"error": "Not found"}
             except Exception as e:
@@ -51,6 +53,59 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                 self.path = '/index.html'
             return super().do_GET()
 
+    def do_POST(self):
+        parsed_path = urllib.parse.urlparse(self.path)
+        path = parsed_path.path
+
+        if path == '/api/config':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            try:
+                data = json.loads(post_data.decode('utf-8'))
+                response = self.handle_save_config(data)
+            except Exception as e:
+                response = {"error": str(e)}
+
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def handle_get_config(self):
+        services_file = os.path.join(ROOT_DIR, 'services.txt')
+        jobs_file = os.path.join(ROOT_DIR, 'jobs.txt')
+
+        with open(services_file, 'r', encoding='utf-8') as f:
+            services = f.read()
+
+        with open(jobs_file, 'r', encoding='utf-8') as f:
+            jobs = f.read()
+
+        return {
+            "services": services,
+            "jobs": jobs
+        }
+
+    def handle_save_config(self, data):
+        services_file = os.path.join(ROOT_DIR, 'services.txt')
+        jobs_file = os.path.join(ROOT_DIR, 'jobs.txt')
+
+        if 'services' in data:
+            with open(services_file, 'w', encoding='utf-8') as f:
+                f.write(data['services'])
+
+        if 'jobs' in data:
+            with open(jobs_file, 'w', encoding='utf-8') as f:
+                f.write(data['jobs'])
+
+        return {"status": "success"}
+
     def handle_boot(self, query):
         services_file = os.path.join(ROOT_DIR, 'services.txt')
         graph, critical, file_order = parse_services_file(services_file)
@@ -59,7 +114,8 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
         if cycle:
             return {"error": f"Cycle detected: {' -> '.join(cycle)}"}
 
-        boot_order = topological_sort_boot_order(graph, file_order)
+        dfs_events = []
+        boot_order = topological_sort_boot_order(graph, file_order, events=dfs_events)
         if boot_order is None:
             return {"error": "Cycle detected during topological sort."}
 
@@ -73,7 +129,9 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
         return {
             "order": boot_order,
             "critical": list(critical),
-            "skipped": skipped
+            "skipped": skipped,
+            "dfs_events": dfs_events,
+            "graph": graph
         }
 
     def handle_scheduler(self, query):
@@ -94,12 +152,16 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
         original_print = __builtins__.print
         __builtins__.print = lambda *args, **kwargs: None
 
+        events_no_aging = []
+        events_aging = []
+
         try:
             _, wait_no_aging = preemptive_priority_schedule(
                 clone_jobs(),
                 use_aging=False,
                 use_threads=False, # Disable threading for faster synchronous API response
                 time_of_day=use_tod,
+                events=events_no_aging,
             )
 
             _, wait_aging = preemptive_priority_schedule(
@@ -109,6 +171,7 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                 aging_interval=5,
                 aging_boost=3,
                 time_of_day=use_tod,
+                events=events_aging,
             )
         finally:
             __builtins__.print = original_print
@@ -122,7 +185,11 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                 "with_aging": wait_aging.get(name, 0)
             })
 
-        return {"jobs": job_stats}
+        return {
+            "jobs": job_stats,
+            "events_no_aging": events_no_aging,
+            "events_aging": events_aging
+        }
 
 if __name__ == "__main__":
     with socketserver.TCPServer(("", PORT), APIHandler) as httpd:

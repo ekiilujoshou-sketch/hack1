@@ -75,6 +75,9 @@ def apply_time_of_day_priority(job: Job, hour: Optional[int] = None) -> int:
     Higher returned value = higher scheduling priority.
     """
     base = job.effective_priority
+    if hour is None:
+        return base
+        
     night = is_night(hour)
     if night and "backup" in job.name.lower():
         return base + 2
@@ -118,13 +121,12 @@ def build_ready_heap(
             job.effective_priority = eff
 
         eff = apply_time_of_day_priority(job, hour)
-        # Tie-break: longer burst first among equal priority (streaming before backup)
-        tie_burst = -job.remaining
+        # Tie-break: FCFS (arrival time) first, then alphabetical name as stable secondary key
         heapq.heappush(
             heap,
             HeapEntry(
                 neg_priority=-eff,
-                tie_key=(job.arrival, tie_burst),
+                tie_key=(job.arrival, job.name),
                 effective_priority=eff,
                 name=job.name,
                 base_priority=job.priority,
@@ -145,6 +147,7 @@ def preemptive_priority_schedule(
     aging_boost: int = 1,
     time_of_day: bool = False,
     max_time: int = 200,
+    events: Optional[List[Dict[str, any]]] = None,
 ) -> Tuple[int, Dict[str, int]]:
     """
     Preemptive priority scheduler with optional aging and threading.
@@ -180,9 +183,19 @@ def preemptive_priority_schedule(
 
         for name in last_aging_log:
             print(f"Time {current_time} -> Aging Applied to {name}")
+            if events is not None:
+                events.append({"time": current_time, "type": "aging", "job": name})
         last_aging_log.clear()
 
+        # Capture heap state before popping
+        if events is not None:
+            heap_state = [{"name": h.name, "priority": h.effective_priority, "remaining": h.remaining} for h in heap]
+            events.append({"time": current_time, "type": "heap", "state": heap_state})
+
         if not heap:
+            if events is not None and running is not None:
+                events.append({"time": current_time, "type": "idle"})
+            running = None
             current_time += 1
             continue
 
@@ -192,8 +205,27 @@ def preemptive_priority_schedule(
         if running != selected.name:
             if running is not None:
                 print(f"Time {current_time} -> Context Switch -> {selected.name}")
+                if events is not None:
+                    events.append({"time": current_time, "type": "switch", "job": selected.name})
             running = selected.name
         print(f"Time {current_time} -> Running {selected.name}")
+        
+        has_tod = False
+        if time_of_day:
+            night = is_night(hour)
+            if night and "backup" in selected.name.lower():
+                has_tod = True
+            elif not night and "stream" in selected.name.lower():
+                has_tod = True
+
+        if events is not None:
+            events.append({
+                "time": current_time,
+                "type": "run",
+                "job": selected.name,
+                "remaining": selected.remaining,
+                "tod_bonus": has_tod
+            })
 
         # Waiting time for jobs not running
         for job in jobs:

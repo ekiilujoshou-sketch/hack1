@@ -6,6 +6,7 @@
     <title>RosterSync Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 </head>
 <body>
     <div class="background-glow"></div>
@@ -16,6 +17,45 @@
         </header>
 
         <div class="panels">
+            <!-- Active Configuration Manager -->
+            <section class="glass-panel" id="config-panel" style="grid-column: span 2; margin-bottom: 1.5rem;">
+                <div class="panel-header">
+                    <h2>Active Configuration Manager</h2>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button id="btn-tab-edit" class="btn secondary btn-sm active-tab" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; border-radius: 6px; border: 1px solid rgba(15,23,42,0.1); background: #ffffff; color: var(--text-main);">Edit Code</button>
+                        <button id="btn-tab-view" class="btn secondary btn-sm" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; border-radius: 6px; border: 1px solid rgba(15,23,42,0.05); background: transparent; color: var(--text-muted);">View Tables</button>
+                        <button id="save-config-btn" class="btn primary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">Save & Reload</button>
+                    </div>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: -0.5rem; margin-bottom: 1.5rem;">
+                    Modify the live configuration files on disk. Saving will automatically reload the network boot order and scheduling simulations below.
+                </p>
+                
+                <!-- Code Editors Tab -->
+                <div id="tab-content-edit" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div>
+                        <h4 style="margin-top: 0; color: var(--primary);">Network Services Dependencies (services.txt)</h4>
+                        <textarea id="services-config-ta" style="width: 100%; height: 200px; font-family: monospace; font-size: 0.85rem; padding: 10px; border-radius: 6px; border: 1px solid rgba(15, 23, 42, 0.15); background: rgba(255,255,255,0.7); color: var(--text-main); resize: vertical; box-sizing: border-box;"></textarea>
+                    </div>
+                    <div>
+                        <h4 style="margin-top: 0; color: var(--primary);">Bandwidth Jobs & Arrival Inputs (jobs.txt)</h4>
+                        <textarea id="jobs-config-ta" style="width: 100%; height: 200px; font-family: monospace; font-size: 0.85rem; padding: 10px; border-radius: 6px; border: 1px solid rgba(15, 23, 42, 0.15); background: rgba(255,255,255,0.7); color: var(--text-main); resize: vertical; box-sizing: border-box;"></textarea>
+                    </div>
+                </div>
+
+                <!-- Live Table Preview Tab -->
+                <div id="tab-content-view" style="display: none; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div>
+                        <h4 style="margin-top: 0; color: var(--primary);">Parsed Services Dependencies</h4>
+                        <div id="services-preview-table-container" style="max-height: 200px; overflow-y: auto; border: 1px solid rgba(15, 23, 42, 0.1); border-radius: 6px; background: #ffffff;"></div>
+                    </div>
+                    <div>
+                        <h4 style="margin-top: 0; color: var(--primary);">Parsed Bandwidth Jobs</h4>
+                        <div id="jobs-preview-table-container" style="max-height: 200px; overflow-y: auto; border: 1px solid rgba(15, 23, 42, 0.1); border-radius: 6px; background: #ffffff;"></div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Boot Sequencer Panel -->
             <section class="glass-panel" id="boot-panel">
                 <div class="panel-header">
@@ -35,6 +75,15 @@
                 <div id="boot-results" class="results-container">
                     <div class="empty-state">Click 'Run Sequence' to boot services</div>
                 </div>
+
+                <div class="visualization-panel">
+                    <h3>DFS Topological Sort Visualization</h3>
+                    <div class="controls small-controls">
+                        <button id="dfs-play-btn" class="btn secondary btn-sm" disabled>Play</button>
+                        <button id="dfs-step-btn" class="btn secondary btn-sm" disabled>Step</button>
+                    </div>
+                    <div id="dfs-graph-container" style="height: 300px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; margin-top: 10px;"></div>
+                </div>
             </section>
 
             <!-- Job Scheduler Panel -->
@@ -52,6 +101,24 @@
 
                 <div id="scheduler-results" class="results-container">
                     <div class="empty-state">Click 'Run Scheduler' to view wait times</div>
+                </div>
+
+                <div class="visualization-panel">
+                    <h3>Process & Min-Heap Visualization</h3>
+                    <div class="controls small-controls">
+                        <select id="viz-mode-select">
+                            <option value="no_aging">Without Aging</option>
+                            <option value="aging">With Aging</option>
+                        </select>
+                        <button id="sched-play-btn" class="btn secondary btn-sm" disabled>Play</button>
+                        <button id="sched-step-btn" class="btn secondary btn-sm" disabled>Step</button>
+                    </div>
+                    
+                    <h4>Min-Heap (Ready Queue)</h4>
+                    <div id="heap-container" class="heap-viz"></div>
+                    
+                    <h4>Process Timeline</h4>
+                    <div id="timeline-container" class="timeline-viz"></div>
                 </div>
             </section>
         </div>
