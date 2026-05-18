@@ -1,0 +1,19 @@
+# Critical services (failure propagates to all dependents)
+# CRITICAL: DNS, Authentication
+
+DNS:
+DHCP:
+Authentication: DNS
+Database: Authentication
+Proxy: DNS
+Firewall: Proxy
+WebServer: Database,Firewall
+LoadBalancer: WebServer
+Monitoring: Firewall,Database
+Logging: Monitoring
+MailServer: DNS
+VPN: Firewall
+FileServer: Authentication
+BackupService: FileServer
+StreamingService: WebServer
+UpdateManager: DNS

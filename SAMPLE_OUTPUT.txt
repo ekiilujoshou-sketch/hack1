@@ -1,0 +1,58 @@
+# RosterSync — Sample Terminal Output
+
+## Module 1 — Boot Sequencer
+
+```
+================================
+SERVICE BOOT SEQUENCER
+================================
+
+BOOT ORDER:
+1. DNS
+2. DHCP
+3. Authentication
+4. Database
+5. Proxy
+6. Firewall
+7. WebServer
+8. LoadBalancer
+9. Monitoring
+10. Logging
+11. MailServer
+12. VPN
+13. FileServer
+14. BackupService
+15. StreamingService
+16. UpdateManager
+
+Critical services: Authentication, DNS
+```
+
+## Module 1 — Cycle Error
+
+```
+ERROR:
+Cycle detected:
+DNS -> Firewall -> DNS
+```
+
+## Module 2 — Job Scheduler (excerpt)
+
+```
+WITHOUT AGING
+
+Time 0 -> Running Video_Stream
+Time 1 -> Running Video_Stream
+Time 2 -> Context Switch -> DNS_Request
+...
+Time 41 -> Context Switch -> Backup
+
+Backup Waiting Time: 41
+
+WITH AGING
+
+Time 5 -> Aging Applied to Backup
+Time 22 -> Context Switch -> Backup
+
+Backup Waiting Time: 22
+```

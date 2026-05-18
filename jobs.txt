@@ -1,0 +1,7 @@
+# name priority burst_time [arrival_time]
+Backup 1 15 0
+OS_Update 2 10 4
+Video_Stream 1 20 0
+Email 5 5 8
+Chat 6 4 12
+DNS_Request 7 2 2
