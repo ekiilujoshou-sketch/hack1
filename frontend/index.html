@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RosterSync Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="background-glow"></div>
+    <div class="container">
+        <header>
+            <h1>RosterSync</h1>
+            <p>Intelligent Service Boot & Job Scheduler</p>
+        </header>
+
+        <div class="panels">
+            <!-- Boot Sequencer Panel -->
+            <section class="glass-panel" id="boot-panel">
+                <div class="panel-header">
+                    <h2>Service Boot Sequencer</h2>
+                    <button id="run-boot-btn" class="btn primary">Run Sequence</button>
+                </div>
+                
+                <div class="controls">
+                    <label>Simulate Critical Failure:</label>
+                    <select id="fail-select">
+                        <option value="">None</option>
+                        <option value="DNS">DNS</option>
+                        <option value="Authentication">Authentication</option>
+                    </select>
+                </div>
+
+                <div id="boot-results" class="results-container">
+                    <div class="empty-state">Click 'Run Sequence' to boot services</div>
+                </div>
+            </section>
+
+            <!-- Job Scheduler Panel -->
+            <section class="glass-panel" id="scheduler-panel">
+                <div class="panel-header">
+                    <h2>Bandwidth Job Scheduler</h2>
+                    <button id="run-scheduler-btn" class="btn primary">Run Scheduler</button>
+                </div>
+                
+                <div class="controls">
+                    <label>
+                        <input type="checkbox" id="time-of-day-cb"> Time of Day Bonus
+                    </label>
+                </div>
+
+                <div id="scheduler-results" class="results-container">
+                    <div class="empty-state">Click 'Run Scheduler' to view wait times</div>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
